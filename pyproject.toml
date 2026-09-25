@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "linux-pc-sandbox"
+version = "1.0.0"
+description = "Cloud-Native High-Throughput Desktop Browser Anti-Detect Infrastructure for Headless Linux Fleets & Docker Containers."
+authors = [{ name = "Longgekutta" }]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+linux-sandbox = "cli:main"

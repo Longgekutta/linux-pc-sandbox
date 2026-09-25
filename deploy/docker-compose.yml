@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # Linux PC Sandbox Worker 01
+  worker-01:
+    build:
+      context: ..
+      dockerFile: deploy/Dockerfile
+    container_name: linux_sandbox_worker_01
+    restart: unless-stopped
+    ports:
+      - "9222:9222"
+    environment:
+      - CDP_PORT=9222
+      - DISPLAY_WIDTH=1920
+      - DISPLAY_HEIGHT=1080
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 768M
+    volumes:
+      - worker01_data:/data/profile
+
+  # Linux PC Sandbox Worker 02
+  worker-02:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: linux_sandbox_worker_02
+    restart: unless-stopped
+    ports:
+      - "9223:9222"
+    environment:
+      - CDP_PORT=9222
+      - DISPLAY_WIDTH=1920
+      - DISPLAY_HEIGHT=1080
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 768M
+    volumes:
+      - worker02_data:/data/profile
+
+volumes:
+  worker01_data:
+  worker02_data:

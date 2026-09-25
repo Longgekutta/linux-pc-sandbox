@@ -1,0 +1,5 @@
+# Linux PC Sandbox - Zero heavy third-party binary requirements
+# Powered entirely by Python standard library (RFC 6455 WebSocket, json, urllib, ssl)
+# Optional dependencies for extended telemetry:
+# requests>=2.31.0
+# websockets>=12.0

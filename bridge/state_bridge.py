@@ -12,10 +12,22 @@ import shutil
 from typing import Dict, Any, List, Optional
 from bridge.shared_schema import PCBrowserProfile
 
+class _HybridBridgeMethod:
+    """Descriptor that enables methods to be called both as instance and class methods."""
+    def __init__(self, fn):
+        self.fn = fn
+
+    def __get__(self, instance, owner):
+        def wrapper(*args, **kwargs):
+            if instance is not None:
+                return self.fn(instance, *args, **kwargs)
+            return self.fn(owner(), *args, **kwargs)
+        return wrapper
+
 class StateBridge:
     """
     Manages session state serialization, cookie extraction, and cross-platform profile transfer.
-    Supports both instance usage with a base directory and static convenience calls.
+    Methods can be called on an instance (using base_profile_dir) or directly on the StateBridge class.
     """
 
     def __init__(self, base_profile_dir: Optional[str] = None):
@@ -26,6 +38,7 @@ class StateBridge:
             return os.path.join(self.base_profile_dir, profile_id)
         return profile_id
 
+    @_HybridBridgeMethod
     def export_profile_bundle(
         self,
         profile_id_or_dir: str,
@@ -80,6 +93,7 @@ class StateBridge:
 
         raise ValueError(f"Unsupported target format (must end in .json or .zip): {target_path}")
 
+    @_HybridBridgeMethod
     def import_profile_bundle(
         self,
         bundle_path: str,

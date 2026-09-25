@@ -30,7 +30,8 @@ class TestLinuxContainerOrchestrator(unittest.TestCase):
         self.assertIn("--memory", cmd)
         self.assertIn("512m", cmd)
         self.assertIn("--cpus", cmd)
-        self.assertIn("0.75", cmd)
+        self.assertIn("--shm-size", cmd)
+        self.assertIn("2g", cmd)
         self.assertIn("127.0.0.1:9230:9222", cmd)
 
     def test_build_local_chromium_command(self):

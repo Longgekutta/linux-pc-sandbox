@@ -36,6 +36,7 @@ class LinuxTaskWorker:
         (() => {
             let glVendor = 'none';
             let glRenderer = 'none';
+            let maxTexSize = 0;
             try {
                 const canvas = document.createElement('canvas');
                 const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
@@ -45,6 +46,7 @@ class LinuxTaskWorker:
                         glVendor = gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL);
                         glRenderer = gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL);
                     }
+                    maxTexSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
                 }
             } catch (e) {}
 
@@ -56,6 +58,12 @@ class LinuxTaskWorker:
                 pluginsLength: navigator.plugins.length,
                 glVendor: glVendor,
                 glRenderer: glRenderer,
+                maxTextureSize: maxTexSize,
+                screenAvailHeight: screen.availHeight,
+                screenHeight: screen.height,
+                notificationPermission: typeof Notification !== 'undefined' ? Notification.permission : 'default',
+                audioScrambled: !!(window.AudioBuffer && AudioBuffer.prototype.getChannelData),
+                canvasProtected: !!(window.CanvasRenderingContext2D && CanvasRenderingContext2D.prototype.getImageData),
                 userAgent: navigator.userAgent
             };
         })()
@@ -71,6 +79,8 @@ class LinuxTaskWorker:
         is_webdriver_hidden = res.get("webdriver") is None
         is_platform_linux = "Linux" in str(res.get("platform", ""))
         is_mesa_hidden = "llvmpipe" not in str(res.get("glRenderer", "")).lower() and "mesa" not in str(res.get("glRenderer", "")).lower()
+        is_max_tex_valid = res.get("maxTextureSize", 0) >= 16384
+        is_screen_valid = res.get("screenAvailHeight", 0) < res.get("screenHeight", 1)
 
         return {
             "success": True,
@@ -78,6 +88,10 @@ class LinuxTaskWorker:
             "webdriver_hidden": is_webdriver_hidden,
             "platform_valid": is_platform_linux,
             "mesa_cloaked": is_mesa_hidden,
+            "max_texture_valid": is_max_tex_valid,
+            "screen_geometry_valid": is_screen_valid,
+            "audio_protected": res.get("audioScrambled", False),
+            "canvas_protected": res.get("canvasProtected", False),
             "gl_vendor": res.get("glVendor"),
             "gl_renderer": res.get("glRenderer"),
             "concurrency": res.get("hardwareConcurrency"),

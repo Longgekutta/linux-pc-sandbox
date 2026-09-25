@@ -1,8 +1,8 @@
 from __future__ import annotations
 """
 Stealth Profile Module - Linux PC Sandbox
-Solves the Mesa llvmpipe software rendering vulnerability, font leakage, and headless Chrome
-fingerprint traps on cloud Linux servers.
+Solves the Mesa llvmpipe software rendering vulnerability, font leakage, AudioContext zero-buffer leaks,
+and headless Chrome fingerprint traps on cloud Linux servers.
 Synthesizes discrete GPU hardware profiles (NVIDIA RTX 3080 / 4090) and Client Hints.
 """
 
@@ -12,10 +12,23 @@ import random
 from typing import Dict, Any, List, Optional
 from bridge.shared_schema import PCBrowserProfile, ScreenConfig, GpuConfig, ProxyConfig, AccountCredentials
 
+TIMEZONE_OFFSETS: Dict[str, int] = {
+    "America/New_York": 240,
+    "America/Chicago": 300,
+    "America/Denver": 360,
+    "America/Los_Angeles": 420,
+    "Europe/London": 0,
+    "Europe/Paris": -60,
+    "Europe/Berlin": -60,
+    "Asia/Tokyo": -540,
+    "Asia/Shanghai": -480,
+    "UTC": 0
+}
+
 class LinuxStealthProfileGenerator:
     """
     Synthesizes and manages cloaked Linux desktop browser profiles.
-    Masks headless server artifacts with authentic discrete GPU rendering and desktop fonts.
+    Masks headless server artifacts with authentic discrete GPU rendering, AudioContext noise, and desktop fonts.
     """
 
     LINUX_GPU_PROFILES = [
@@ -94,12 +107,18 @@ class LinuxStealthProfileGenerator:
     @classmethod
     def build_linux_stealth_script(cls, profile: PCBrowserProfile) -> str:
         """
-        Synthesize dynamic JavaScript payload to eradicate Mesa / llvmpipe and HeadlessChrome signatures.
+        Synthesize comprehensive JavaScript payload to eradicate Mesa / llvmpipe, AudioContext zero-buffer,
+        Canvas 2D disparity, and HeadlessChrome signatures on cloud Linux nodes.
         """
         gl_vendor = profile.gpu.gl_vendor
         gl_renderer = profile.gpu.gl_renderer
         concurrency = profile.hardware_concurrency
         memory = profile.device_memory_gb
+        screen_w = profile.screen.width
+        screen_h = profile.screen.height
+        avail_h = max(screen_h - 28, 600)  # Linux GNOME 28px panel
+        timezone = profile.timezone
+        tz_offset = TIMEZONE_OFFSETS.get(timezone, 240)
 
         return f"""
 (() => {{
@@ -136,26 +155,141 @@ class LinuxStealthProfileGenerator:
         }});
     }} catch (e) {{}}
 
-    // 3. Mesa llvmpipe / SwiftShader Software WebGL Cloaking ({gl_vendor} / {gl_renderer})
+    // 3. Screen & Linux Desktop Panel Metrics
     try {{
-        const getParam1 = WebGLRenderingContext.prototype.getParameter;
-        WebGLRenderingContext.prototype.getParameter = function(param) {{
-            // UNMASKED_VENDOR_WEBGL (37445)
-            if (param === 37445) return '{gl_vendor}';
-            // UNMASKED_RENDERER_WEBGL (37446)
-            if (param === 37446) return '{gl_renderer}';
-            return getParam1.apply(this, arguments);
+        Object.defineProperty(screen, 'width', {{ get: () => {screen_w}, configurable: true }});
+        Object.defineProperty(screen, 'height', {{ get: () => {screen_h}, configurable: true }});
+        Object.defineProperty(screen, 'availWidth', {{ get: () => {screen_w}, configurable: true }});
+        Object.defineProperty(screen, 'availHeight', {{ get: () => {avail_h}, configurable: true }});
+        Object.defineProperty(screen, 'availLeft', {{ get: () => 0, configurable: true }});
+        Object.defineProperty(screen, 'availTop', {{ get: () => 28, configurable: true }});
+        Object.defineProperty(screen, 'colorDepth', {{ get: () => 24, configurable: true }});
+        Object.defineProperty(screen, 'pixelDepth', {{ get: () => 24, configurable: true }});
+    }} catch (e) {{}}
+
+    // 4. Complete Mesa llvmpipe / SwiftShader Software WebGL Eradication ({gl_vendor} / {gl_renderer})
+    try {{
+        const paramOverrides = {{
+            37445: '{gl_vendor}',                    // UNMASKED_VENDOR_WEBGL
+            37446: '{gl_renderer}',                  // UNMASKED_RENDERER_WEBGL
+            3379: 16384,                             // MAX_TEXTURE_SIZE (masks llvmpipe 8192)
+            34024: 16384,                            // MAX_RENDERBUFFER_SIZE
+            3386: new Int32Array([16384, 16384]),    // MAX_VIEWPORT_DIMS
+            34921: 16,                               // MAX_VERTEX_ATTRIBS
+            35660: 32,                               // MAX_VERTEX_TEXTURE_IMAGE_UNITS
+            35661: 64                                // MAX_COMBINED_TEXTURE_IMAGE_UNITS
         }};
 
-        const getParam2 = WebGL2RenderingContext.prototype.getParameter;
-        WebGL2RenderingContext.prototype.getParameter = function(param) {{
-            if (param === 37445) return '{gl_vendor}';
-            if (param === 37446) return '{gl_renderer}';
-            return getParam2.apply(this, arguments);
+        const hookGL = (proto) => {{
+            const origGetParam = proto.getParameter;
+            proto.getParameter = function(param) {{
+                if (param in paramOverrides) {{
+                    return paramOverrides[param];
+                }}
+                return origGetParam.apply(this, arguments);
+            }};
+
+            const origGetExt = proto.getSupportedExtensions;
+            proto.getSupportedExtensions = function() {{
+                const exts = origGetExt.apply(this, arguments) || [];
+                // Strip out Mesa debug extensions
+                return exts.filter(ext => !ext.toLowerCase().includes('debug_shaders'));
+            }};
+        }};
+
+        if (window.WebGLRenderingContext) hookGL(WebGLRenderingContext.prototype);
+        if (window.WebGL2RenderingContext) hookGL(WebGL2RenderingContext.prototype);
+    }} catch (e) {{}}
+
+    // 5. AudioContext Fingerprint Scrambler (Micro-Jitter for Headless Cloud Nodes)
+    try {{
+        if (window.AudioBuffer) {{
+            const origGetChannelData = AudioBuffer.prototype.getChannelData;
+            AudioBuffer.prototype.getChannelData = function(channel) {{
+                const data = origGetChannelData.apply(this, arguments);
+                for (let i = 0; i < data.length; i += 128) {{
+                    data[i] = data[i] + 0.0000001 * Math.sin(i);
+                }}
+                return data;
+            }};
+        }}
+        if (window.AnalyserNode) {{
+            const origGetFloatData = AnalyserNode.prototype.getFloatFrequencyData;
+            AnalyserNode.prototype.getFloatFrequencyData = function(array) {{
+                origGetFloatData.apply(this, arguments);
+                for (let i = 0; i < array.length; i += 64) {{
+                    array[i] += 0.0001 * Math.cos(i);
+                }}
+            }};
+        }}
+    }} catch (e) {{}}
+
+    // 6. Canvas 2D Subpixel Noise Protection
+    try {{
+        if (window.CanvasRenderingContext2D) {{
+            const origGetImageData = CanvasRenderingContext2D.prototype.getImageData;
+            CanvasRenderingContext2D.prototype.getImageData = function(sx, sy, sw, sh) {{
+                const imageData = origGetImageData.apply(this, arguments);
+                const d = imageData.data;
+                for (let i = 0; i < d.length; i += 256) {{
+                    d[i] = d[i] ^ 1; // Subtle 1-LSB perturbation
+                }}
+                return imageData;
+            }};
+        }}
+    }} catch (e) {{}}
+
+    // 7. Permissions API & Notification Consistency
+    try {{
+        if (window.Notification) {{
+            Object.defineProperty(Notification, 'permission', {{
+                get: () => 'default',
+                configurable: true
+            }});
+        }}
+        if (navigator.permissions && navigator.permissions.query) {{
+            const origQuery = navigator.permissions.query;
+            navigator.permissions.query = function(params) {{
+                if (params && params.name === 'notifications') {{
+                    return Promise.resolve({{
+                        state: 'default',
+                        onchange: null,
+                        name: 'notifications'
+                    }});
+                }}
+                return origQuery.apply(this, arguments);
+            }};
+        }}
+    }} catch (e) {{}}
+
+    // 8. Battery API Simulation
+    try {{
+        if (navigator.getBattery) {{
+            navigator.getBattery = () => Promise.resolve({{
+                charging: true,
+                chargingTime: 0,
+                dischargingTime: Infinity,
+                level: 1.0,
+                onchargingchange: null,
+                onlevelchange: null
+            }});
+        }}
+    }} catch (e) {{}}
+
+    // 9. Timezone & Locale Coherence
+    try {{
+        const origResolved = Intl.DateTimeFormat.prototype.resolvedOptions;
+        Intl.DateTimeFormat.prototype.resolvedOptions = function() {{
+            const options = origResolved.apply(this, arguments);
+            options.timeZone = '{timezone}';
+            return options;
+        }};
+        Date.prototype.getTimezoneOffset = function() {{
+            return {tz_offset};
         }};
     }} catch (e) {{}}
 
-    // 4. Mock window.chrome for Headless Linux
+    // 10. Mock window.chrome for Headless Linux
     try {{
         if (!window.chrome) {{
             window.chrome = {{
@@ -167,7 +301,7 @@ class LinuxStealthProfileGenerator:
         }}
     }} catch (e) {{}}
 
-    // 5. Realistic Desktop Plugins Array
+    // 11. Realistic Desktop Plugins Array
     try {{
         Object.defineProperty(navigator, 'plugins', {{
             get: () => [

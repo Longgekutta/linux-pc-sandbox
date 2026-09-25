@@ -31,6 +31,12 @@ class TestLinuxStealthProfile(unittest.TestCase):
         self.assertIn(str(p.device_memory_gb), script)
         self.assertIn("UNMASKED_RENDERER_WEBGL", script)
         self.assertIn("window.chrome", script)
+        self.assertIn("MAX_TEXTURE_SIZE", script)
+        self.assertIn("AudioBuffer.prototype.getChannelData", script)
+        self.assertIn("CanvasRenderingContext2D.prototype.getImageData", script)
+        self.assertIn("availHeight", script)
+        self.assertIn("Notification", script)
+        self.assertIn("navigator.getBattery", script)
 
 if __name__ == "__main__":
     unittest.main()
